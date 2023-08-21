@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<style type="text/css">
+		html,body {
+		 	height: 100%;
+		 	margin: 0;
+		}
+		canvas{
+		 	width: 100%;
+		 	height: 100%;
+		}
+	</style>
+</head>
+<body>
+<canvas resize></canvas>
+<script src="http://paperjs.org/assets/js/paper.js"></script>
+<script src="js/d3.v7.min.js"></script>
+<script type="text/javascript">
+	// Make the paper scope global, by injecting it into window 
+	paper.install(window);
+
+	// Get a reference to the canvas object
+	const canvas = document.querySelector('canvas');
+
+	window.onload = function() {
+
+		// Create an empty project and a view for the canvas
+  		paper.setup(canvas)
+
+  		// "달의 동쪽 이미지" blob settings
+		const values = {
+			paths: 200, // Amount of total blobs per page
+			minPoints: 3, // min vector points of a blob, minimum 3 for a shape.
+			maxPoints: 100, // max vector points of a blob
+			minRadius: 10, // min radius of a blob
+			maxRadius: 200 // max radius of a blob
+		};
+
+		// "달의 동쪽 이미지" 에서 뽑은 색깔들
+		const colors = [ 
+			"#213019", "#076a53", "#47aabf", "#0164c6", "#003ea7", "#1b057b", "#b18232", "#a4b700", "#fdfc00", 
+			"#fee7a6", "#feffaa", "#4c1613", "#8f372a", "#964e18", "#dea482", "#ffd4b1", "#fec356", "#fcb69c", 
+			"#ff8c13", "#e37056", "#ff4a00", "#ca1f0f", "#fc142c", "#f90786", "#ffc0e7", "#e8c6ee", "#d1aee2"
+		];
+
+		let radiusDelta = values.maxRadius - values.minRadius;
+		let pointsDelta = values.maxPoints - values.minPoints;
+
+		// loop through amount of total blobs per page
+		for (let i = 0; i < values.paths; i++) {
+
+			// 1. random radius between min and max radius
+			let radius = values.minRadius + Math.random() * radiusDelta;
+
+			// 2. random number of vector points between min and max points
+			let points = values.minPoints + Math.floor(Math.random() * pointsDelta);
+
+			// 3. random X, Y position in a page
+			let randomPos = new Point(window.innerWidth * Math.random(), window.innerHeight * Math.random());
+
+			// create a blob with 3 random values above
+			let path = createBlob(randomPos, radius, points);
+
+			// random color from colors array;
+			path.fillColor = colors[Math.floor(Math.random() * colors.length)];
+
+			// black outline like blobs in "달의 동쪽 이미지"
+			path.strokeColor = 'black';
+		};
+		
+		function createBlob(center, radius, points) {
+
+			// create an empty paper.js shape
+			let path = new Path();
+
+			path.closed = true;
+
+			// loop through amount of points
+			for (let i = 0; i < points; i++) {
+
+				// create vector point
+				let delta = new Point({
+					// plot random point from (radius * 0.5) to (radius * 1)... 
+					length: (radius * 0.5) + (Math.random() * radius * 0.5),
+
+					// while rotating 360 deg from the center point
+					angle: (360 / points) * i 
+				});
+
+				// add this plotted points to center point
+				path.add( center.add(delta) );
+
+			}
+
+			// this automatically smooth paths, http://paperjs.org/tutorials/paths/smoothing-simplifying-flattening/
+			path.smooth();
+
+			return path;
+		}	
+	}
+</script>
+</body>
+</html>
