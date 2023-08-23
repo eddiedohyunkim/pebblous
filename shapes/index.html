@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<style type="text/css">
+		html,body {
+		 	height: 100%;
+		 	margin: 0;
+		}
+		canvas{
+		 	width: 100%;
+		 	height: 100%;
+		}
+	</style>
+</head>
+<body>
+<canvas id="canvas" resize></canvas>
+<script src="../js/dist/paper-full.min.js"></script>
+<script type="text/javascript">
+	paper.install(window);
+
+	const colors = [ 
+		"#213019", "#076a53", "#47aabf", "#0164c6", "#003ea7", "#1b057b", "#b18232", "#a4b700", "#fdfc00", 
+		"#fee7a6", "#feffaa", "#4c1613", "#8f372a", "#964e18", "#dea482", "#ffd4b1", "#fec356", "#fcb69c", 
+		"#ff8c13", "#e37056", "#ff4a00", "#ca1f0f", "#fc142c", "#f90786", "#ffc0e7", "#e8c6ee", "#d1aee2"
+	];
+
+	window.onload = function(){
+	    paper.setup('canvas');
+
+	    const amount = 300;
+
+	    const values = {
+			minPoints: 3, // min vector points of a blob, minimum 3 for a shape.
+			maxPoints: 50, // max vector points of a blob
+			minRadius: 50, // min radius of a blob
+			maxRadius: 150 // max radius of a blob
+		};
+
+		for(let i = 0; i < amount; i++){	
+			Math.random() < 0.2 ? star(values) : starBoolean(values);
+		}
+	};
+
+	function starBoolean(values){
+		let path1 = createStar(values),
+	    	path2 = createStar(values);
+
+	    path1.position = new Point(0, 0);
+	    path1.rotate(Math.random() * 360);
+		
+		let plusOrMinus = Math.random() < 0.5 ? -1 : 1;
+	    path2.position = new Point( plusOrMinus * Math.floor(Math.random() * 100), plusOrMinus * Math.floor(Math.random() * 100) );
+	    path2.rotate(Math.random() * 360);
+
+	    let operations = [ /*'unite',*/ 'intersect', 'subtract'/*, 'exclude', 'divide'*/];
+	    
+	    let operation = operations[Math.floor( Math.random() * operations.length )];
+	    var result = path1[operation](path2);
+	    path1.remove();
+	    path2.remove();
+	    
+	    result.position = new Point(window.innerWidth * Math.random(), window.innerHeight * Math.random());
+	    result.smooth();
+	    result.simplify();
+	    result.fillColor = colors[Math.floor(Math.random() * colors.length)];
+	    result.strokeColor = 'black';
+
+	}
+
+	function star(values){
+		let starPath = createStar(values);
+		starPath.position = new Point(window.innerWidth * Math.random(), window.innerHeight * Math.random());
+	    starPath.smooth();
+	}
+
+	function createStar(values) {
+
+		let radiusDelta = values.maxRadius - values.minRadius;
+		let pointsDelta = values.maxPoints - values.minPoints;
+
+		// 1. random radius between min and max radius
+		let radius = values.minRadius + Math.random() * radiusDelta;
+		// 2. random number of vector points between min and max points
+		let points = values.minPoints + Math.floor(Math.random() * pointsDelta);
+		// 3. random X, Y position in a page
+		let randomPos = new Point(window.innerWidth * Math.random(), window.innerHeight * Math.random());
+
+		// create a blob with 3 random values above
+		let path = createBlob(randomPos, radius, points);
+		path.fillColor = colors[Math.floor(Math.random() * colors.length)];
+		path.strokeColor = 'black';
+		return path
+	};
+		
+	function createBlob(center, radius, points) {
+		let path = new Path();
+		path.closed = true;
+		for (let i = 0; i < points; i++) {
+			let delta = new Point({
+				length: (radius * 0.5) + (Math.random() * radius * 0.5),
+				angle: ( 360 / points) * i
+			});
+			path.add( center.add(delta) );
+		}
+		return path;
+	}
+</script>
+</body>
+</html>

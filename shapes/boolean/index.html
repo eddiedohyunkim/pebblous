@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<style type="text/css">
+		html,body {
+/*		 	height: 100%;*/
+/*		 	margin: 0;*/
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			grid-gap: 8px;
+		}
+		canvas{
+			width: 500px;
+			height: 500px;
+/*			display: none;*/
+/*		 	width: 100%;*/
+/*		 	height: 100%;*/
+		}
+		canvas, svg{
+			border: 1px solid;
+		}
+	</style>
+</head>
+<body>
+	<div>
+		<canvas id="canvas" width="500" height="500" resize></canvas>
+	</div>
+	<div>
+		<svg width="500" height="500" viewBox="0 0 500 500">
+			<path fill="#00f" d=""/>
+		</svg>
+		<p>red.<span id="method"></span>(green)<p>
+	</div>
+<p id="output"></p>
+<script src="../../js/dist/paper-full.min.js"></script>
+<script type="text/javascript">
+	paper.install(window);
+
+
+	window.onload = function(){
+	    paper.setup('canvas');
+
+	    const values = {
+			minPoints: 3, // min vector points of a blob, minimum 3 for a shape.
+			maxPoints: 50, // max vector points of a blob
+			minRadius: 50, // min radius of a blob
+			maxRadius: 150 // max radius of a blob
+		};
+	
+	    boolean(values)
+	};
+
+	function boolean(values){
+		var path1 = createStar(values),
+	    	path2 = createStar(values);
+	    	// path3 = createStar(values);
+		
+	    path1.fillColor = 'rgba(255,0,0,.5)';
+	    path1.strokeColor = '#f00';
+	    path1.position = new Point(250, 250);
+	    path1.rotate(Math.random() * 360);
+		
+		var plusOrMinus = Math.random() < 0.5 ? -1 : 1;
+
+	    path2.fillColor = 'rgba(0,255,0,.5)';
+	    path2.strokeColor = '#0f0';
+	    path2.position = new Point( 250 + plusOrMinus * Math.floor(Math.random() * 100), 250 + plusOrMinus * Math.floor(Math.random() * 100) );
+	    path2.rotate(Math.random() * 360);
+
+	    // path3.fillColor = 'rgba(0,0,255,.5)';
+	    // path3.strokeColor = '#00f';
+	    // path3.position = new Point( 250 + plusOrMinus * Math.floor(Math.random() * 100), 250 + plusOrMinus * Math.floor(Math.random() * 100) );
+
+	    var operations = ['unite', 'intersect', 'subtract' /*, 'exclude'*//*, 'divide'*/];
+	    
+	    let operation = operations[Math.floor( Math.random() * operations.length )];
+	    var result = path1[operation](path2);
+	    // result = result[operation](path3);
+		result.selected = true;
+		// result.fillColor = '#f0f';
+
+		let method = document.querySelector('#method');
+		method.innerHTML = operation;
+
+	    let clone = result.clone();
+	    clone.smooth();
+	    clone.simplify();
+	
+	    //exportSVG() docu: http://paperjs.org/reference/item/#exportsvg
+	    var svgPathElement = clone.exportSVG(),
+	        dPath = svgPathElement.getAttribute('d');
+	    
+	    document.querySelector('path').setAttribute('d', dPath);
+
+	    clone.remove();
+
+	}
+
+	function createStar(values) {
+
+		let radiusDelta = values.maxRadius - values.minRadius;
+		let pointsDelta = values.maxPoints - values.minPoints;
+
+		// 1. random radius between min and max radius
+		let radius = values.minRadius + Math.random() * radiusDelta;
+		// 2. random number of vector points between min and max points
+		let points = values.minPoints + Math.floor(Math.random() * pointsDelta);
+		// 3. random X, Y position in a page
+		let randomPos = new Point(window.innerWidth * Math.random(), window.innerHeight * Math.random());
+
+		// create a blob with 3 random values above
+		let path = createBlob(randomPos, radius, points);
+		return path
+		// path.fillColor = colors[Math.floor(Math.random() * colors.length)];
+		// path.strokeColor = 'black';
+	};
+		
+	function createBlob(center, radius, points) {
+		let path = new Path();
+		path.closed = true;
+
+		// loop through amount of points
+		for (let i = 0; i < points; i++) {
+
+			// create vector point
+			let delta = new Point({
+				length: (radius * 0.5) + (Math.random() * radius * 0.5),
+				angle: ( 360 / points) * i
+			});
+
+			// add this plotted points to center point
+			path.add( center.add(delta) );
+		}
+		// smooth() docu: http://paperjs.org/tutorials/paths/smoothing-simplifying-flattening/
+		// path.smooth();
+		return path;
+	}
+
+</script>
+</body>
+</html>

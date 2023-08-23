@@ -17,13 +17,20 @@
 </head>
 <body>
 <canvas resize></canvas>
-<script src="js/dist/paper-full.min.js"></script>
+<script src="../../js/dist/paper-full.min.js"></script>
 <script type="text/javascript">
 	// Make the paper scope global, by injecting it into window 
 	paper.install(window);
 
 	// Get a reference to the canvas object
 	const canvas = document.querySelector('canvas');
+
+	// "달의 동쪽 이미지" 에서 뽑은 색깔들
+	const colors = [ 
+		"#213019", "#076a53", "#47aabf", "#0164c6", "#003ea7", "#1b057b", "#b18232", "#a4b700", "#fdfc00", 
+		"#fee7a6", "#feffaa", "#4c1613", "#8f372a", "#964e18", "#dea482", "#ffd4b1", "#fec356", "#fcb69c", 
+		"#ff8c13", "#e37056", "#ff4a00", "#ca1f0f", "#fc142c", "#f90786", "#ffc0e7", "#e8c6ee", "#d1aee2"
+	];
 
 	window.onload = function() {
 
@@ -34,17 +41,16 @@
 		const values = {
 			paths: 200, // Amount of total blobs per page
 			minPoints: 3, // min vector points of a blob, minimum 3 for a shape.
-			maxPoints: 100, // max vector points of a blob
+			maxPoints: 50, // max vector points of a blob
 			minRadius: 10, // min radius of a blob
 			maxRadius: 200 // max radius of a blob
 		};
 
-		// "달의 동쪽 이미지" 에서 뽑은 색깔들
-		const colors = [ 
-			"#213019", "#076a53", "#47aabf", "#0164c6", "#003ea7", "#1b057b", "#b18232", "#a4b700", "#fdfc00", 
-			"#fee7a6", "#feffaa", "#4c1613", "#8f372a", "#964e18", "#dea482", "#ffd4b1", "#fec356", "#fcb69c", 
-			"#ff8c13", "#e37056", "#ff4a00", "#ca1f0f", "#fc142c", "#f90786", "#ffc0e7", "#e8c6ee", "#d1aee2"
-		];
+		createStar(values)
+		
+	}
+
+	function createStar(values) {
 
 		let radiusDelta = values.maxRadius - values.minRadius;
 		let pointsDelta = values.maxPoints - values.minPoints;
@@ -87,7 +93,7 @@
 					length: (radius * 0.5) + (Math.random() * radius * 0.5),
 
 					// while rotating 360 deg from the center point
-					angle: (360 / points) * i 
+					angle: ( 360 / points) * i
 				});
 
 				// add this plotted points to center point
