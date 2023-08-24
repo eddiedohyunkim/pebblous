@@ -56,7 +56,7 @@
 	function boolean(values){
 		var path1 = createStar(values),
 	    	path2 = createStar(values);
-	    	// path3 = createStar(values);
+	    	path3 = createStar(values);
 		
 	    path1.fillColor = 'rgba(255,0,0,.5)';
 	    path1.strokeColor = '#f00';
@@ -70,15 +70,15 @@
 	    path2.position = new Point( 250 + plusOrMinus * Math.floor(Math.random() * 100), 250 + plusOrMinus * Math.floor(Math.random() * 100) );
 	    path2.rotate(Math.random() * 360);
 
-	    // path3.fillColor = 'rgba(0,0,255,.5)';
-	    // path3.strokeColor = '#00f';
-	    // path3.position = new Point( 250 + plusOrMinus * Math.floor(Math.random() * 100), 250 + plusOrMinus * Math.floor(Math.random() * 100) );
+	    path3.fillColor = 'rgba(0,0,255,.5)';
+	    path3.strokeColor = '#00f';
+	    path3.position = new Point( 250 + plusOrMinus * Math.floor(Math.random() * 100), 250 + plusOrMinus * Math.floor(Math.random() * 100) );
 
 	    var operations = ['unite', 'intersect', 'subtract' /*, 'exclude'*//*, 'divide'*/];
 	    
 	    let operation = operations[Math.floor( Math.random() * operations.length )];
 	    var result = path1[operation](path2);
-	    // result = result[operation](path3);
+	    result = result[operation](path3);
 		result.selected = true;
 		// result.fillColor = '#f0f';
 

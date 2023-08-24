@@ -47,6 +47,7 @@
 	function starBoolean(values){
 		let path1 = createStar(values),
 	    	path2 = createStar(values);
+	    	path3 = createStar(values);
 
 	    path1.position = new Point(0, 0);
 	    path1.rotate(Math.random() * 360);
@@ -55,12 +56,17 @@
 	    path2.position = new Point( plusOrMinus * Math.floor(Math.random() * 100), plusOrMinus * Math.floor(Math.random() * 100) );
 	    path2.rotate(Math.random() * 360);
 
-	    let operations = [ /*'unite',*/ 'intersect', 'subtract'/*, 'exclude', 'divide'*/];
+	    path3.position = new Point( plusOrMinus * Math.floor(Math.random() * 100), plusOrMinus * Math.floor(Math.random() * 100) );
+	    path3.rotate(Math.random() * 360);
+
+	    let operations = [ 'unite', 'intersect', 'subtract'/*, 'exclude', 'divide'*/];
 	    
 	    let operation = operations[Math.floor( Math.random() * operations.length )];
 	    var result = path1[operation](path2);
+	    result = result[operation](path3)
 	    path1.remove();
 	    path2.remove();
+	    path3.remove();
 	    
 	    result.position = new Point(window.innerWidth * Math.random(), window.innerHeight * Math.random());
 	    result.smooth();
