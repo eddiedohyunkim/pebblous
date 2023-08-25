@@ -7,8 +7,6 @@
     <style type="text/css">
         body > div{
             display: inline-block;
-        }
-        svg{
             border: 1px solid;
         }
     </style>
@@ -25,12 +23,10 @@ const values = {
     bandwidth: 30,
     thresholds: 5
 }
-
-// generate random X, Y values
-let randomXY = [];
-for (let i = 0; i < values.amount; i++){
-    randomXY.push( {x: Math.random(), y: Math.random()} );
-}
+// Specify the dimensions of the chart.
+const width = 500;
+const height = 500;
+const margin = 100;
 
 const colors = [ 
     "#213019", "#076a53", "#47aabf", "#0164c6", "#003ea7", "#1b057b", "#b18232", "#a4b700", "#fdfc00", 
@@ -38,10 +34,11 @@ const colors = [
     "#ff8c13", "#e37056", "#ff4a00", "#ca1f0f", "#fc142c", "#f90786", "#ffc0e7", "#e8c6ee", "#d1aee2"
 ];
 
-// Specify the dimensions of the chart.
-const width = 500;
-const height = 500;
-const margin = 100;
+// generate random X, Y values
+let randomXY = [];
+for (let i = 0; i < values.amount; i++){
+    randomXY.push( {x: Math.random(), y: Math.random()} );
+}
 
 // Create the horizontal and vertical scales.
 const x = d3.scaleLinear()
@@ -56,10 +53,12 @@ const y = d3.scaleLinear()
 const contours = d3.contourDensity()
     .x(d => x(d.x))
     .y(d => y(d.y))
-    .size([width, height])
+    .size([width-margin, height-margin])
     .bandwidth(values.bandwidth)
     .thresholds(values.thresholds)
 (randomXY);
+
+console.log(contours);
 
 // Create the SVG container.
 const svg = d3.create("svg")
@@ -81,7 +80,6 @@ svg.append("g")
 
 // Append dots.
 svg.append("g")
-    .attr("stroke", "white")
 .selectAll()
 .data(randomXY)
 .join("circle")
@@ -91,7 +89,6 @@ svg.append("g")
 
 // Append the SVG element.
 container.append(svg.node());
-
 
 let allContours = document.querySelectorAll('#container path');
 let selectedContours = allContours[Math.floor( Math.random() * allContours.length )];
