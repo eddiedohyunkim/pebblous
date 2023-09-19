@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<style type="text/css">
+		body{
+			margin:0;
+			width:100vw;
+			height:100vh;
+			position: fixed;
+		}
+
+		.birdcont {
+			z-index: 9;
+			border: 1px solid transparent;
+		}
+
+
+		/*Drgable */
+		.birdcont {
+			position: absolute;
+			overflow: auto;
+		}
+		
+		.birdcont-inner {
+			cursor: move;
+			z-index: 10;
+			width:100%;
+			height:100%;
+		}
+
+		/*Resizeable*/
+		.birdcont .resizer-right, 
+		.birdcont .resizer-bottom, 
+		.birdcont .resizer-both{
+			background: transparent;
+		  	position: absolute;
+		  	right: 0;
+		  	bottom: 0;
+		}
+
+		.birdcont .resizer-right {
+			width: 10px;
+			height: 100%;
+			cursor: e-resize;
+		}
+		
+		.birdcont .resizer-bottom {
+			width: 100%;
+			height: 10px;
+			cursor: n-resize;
+		}
+		
+		.birdcont .resizer-both {
+			width: 10px;
+			height: 10px;
+			z-index: 10;
+			cursor: nw-resize;
+		}
+		.birdcont.current{
+			border-color: cyan;
+		}
+
+		/*NOSELECT*/
+		.birdcont * {
+			-webkit-touch-callout: none; /* iOS Safari */
+			-webkit-user-select: none; /* Safari */
+			-khtml-user-select: none; /* Konqueror HTML */
+			-moz-user-select: none; /* Firefox */
+			-ms-user-select: none; /* Internet Explorer/Edge */
+			user-select: none; /* Non-prefixed version, currently supported by Chrome and Opera */
+		}
+
+		.birdcont * {
+			overflow: hidden;
+		}
+
+		object{
+      		pointer-events: none;
+    	}
+
+    	header{
+    		position: absolute;
+    		z-index: 9999;
+    		top:0;
+    		left:0;
+    	}
+	</style>
+</head>
+<body>
+	<header>
+		<input type="color" id="colorpicker" value="#ff0000" onchange="colorChange()" oninput="colorChange()">  
+	</header>
+<script type="text/javascript">
+console.log( "USAGE" )
+console.log( "Send to back (z-index: 0;) : [" )
+
+window.onload = function() {
+	populateBirds()
+	// initialSVGTreatment();
+	changeColor();
+	sendToBack();
+	initDrag();
+	initResize();
+};
+
+function populateBirds(){
+	const windowWidth = window.innerWidth;
+	const windowHeight = window.innerHeight;
+	const birdMinSize = 50; // width and height
+	const birdMaxSize = 300; // width and height
+	const amount = 450;
+
+	for(let i = 0; i<amount; i+=1){
+
+		// largest <div> for resizable function
+		let birdcont = document.createElement('div');
+		birdcont.className = 'birdcont';
+		birdcont.style.width = birdMinSize + 'px';
+		birdcont.style.height = birdMinSize + 'px';
+		document.body.appendChild(birdcont);
+
+		// <div> for draggable function
+		let birdcontInner = document.createElement('div');
+		birdcontInner.className = 'birdcont-inner';
+		birdcont.appendChild(birdcontInner);
+		
+		// <object> nests <svg>
+		let object = document.createElement('object');
+		object.id = 'bird' + (i+1);
+		object.type = "image/svg+xml";
+		object.data = `assets/Bird-450-${zeroFilled3(i+1)}.svg`;
+		object.width = '100%';
+		object.height = '100%';
+		birdcontInner.appendChild(object);
+
+		// populate to random positions (for now!)
+		let windowRandomX = Math.floor(Math.random() * windowWidth) - birdMinSize;
+		let windowRandomY = Math.floor(Math.random() * windowHeight) - birdMinSize;
+		birdcont.style.left = windowRandomX + 'px';
+		birdcont.style.top = windowRandomY + 'px';
+
+		// populate in random scale (for now!)
+		let randomScale = Math.floor(Math.random() * birdMaxSize - birdMinSize) + birdMinSize;
+		birdcont.style.width = randomScale + 'px';
+		birdcont.style.height = randomScale + 'px';
+
+	}
+
+	initialSVGTreatment();
+}
+
+function zeroFilled3(num){
+	return ('000' + num).substr(-3)
+}
+
+function initialSVGTreatment(){
+
+    // 1. remove black background
+    // 2. change strokes to black and fill template color
+    // 3. center the texts
+    // 4. make SVG fitted to contour map
+	const colors = [ 
+    	"#213019", "#076a53", "#47aabf", "#0164c6", "#003ea7", "#1b057b", "#b18232", "#a4b700", "#fdfc00", 
+    	"#fee7a6", "#feffaa", "#4c1613", "#8f372a", "#964e18", "#dea482", "#ffd4b1", "#fec356", "#fcb69c", 
+    	"#ff8c13", "#e37056", "#ff4a00", "#ca1f0f", "#fc142c", "#f90786", "#ffc0e7", "#e8c6ee", "#d1aee2"
+	];
+
+    let birdconts = document.querySelectorAll('.birdcont');
+    birdconts.forEach((bird) => {
+		let object = bird.querySelector('object');
+
+		object.addEventListener("load",function(){
+
+			// get the inner DOM of bird-450-nnn.svg
+			let svgDoc = object.contentDocument;
+	
+			// get the contour path group method #2
+			let g = svgDoc.querySelector(':scope > g');
+	
+			// 1. remove background black square 
+			g.querySelector('rect').remove();
+	
+			// 2. change strokes to black and fill template color
+			let allpaths = g.querySelectorAll('path');
+			let randomColor = colors[Math.floor(Math.random() * colors.length)]
+			allpaths.forEach( (path) => {
+			    path.style.stroke = '#000';
+			    path.style.fill = randomColor;
+			});
+
+    		// 3. center the texts
+    		let svg = svgDoc.querySelector('svg');
+    		let bbox = svg.getBBox();
+    		let allTexts = g.querySelectorAll('use');
+			allTexts.forEach( (text) => {
+				let currentY = text.getAttribute('y');
+				let newY = Number(currentY) + bbox.height/2;
+				text.setAttribute('y', newY);
+			});
+
+			// 4. make SVG fitted to the contour map
+			svg.setAttribute('width', '100%');
+			svg.setAttribute('height', '100%');
+			let bboxNew = svg.getBBox();
+    		// Set the viewport with these bounds
+    		svg.setAttribute("viewBox", `${bboxNew.x} ${bboxNew.y} ${bboxNew.width} ${bboxNew.height}`);
+
+		});
+
+	}, false);
+}
+
+let clickedbirdsCont;
+const colorPicker = document.getElementById('colorpicker');
+
+function changeColor(){
+	let birdconts = document.querySelectorAll('.birdcont');
+    birdconts.forEach((bird) => {
+      bird.addEventListener('click', function(e){
+        clickedbirdsCont = this;
+      });
+    });
+}
+function colorChange(){
+	
+	let object = clickedbirdsCont.querySelector('object');
+
+	// get the inner DOM of bird-450-nnn.svg
+	let svgDoc = object.contentDocument;
+
+	// get the contour path group method 2
+	let g = svgDoc.querySelector(':scope > g');
+
+	let allpaths = g.querySelectorAll('path');
+	allpaths.forEach((path) => {
+	  path.style.fill = colorPicker.value;
+	});
+}
+
+
+function sendToBack(){
+	let birdconts = document.querySelectorAll('.birdcont');
+    birdconts.forEach((bird) => {
+    	bird.addEventListener('click', function(e){
+    	  	clickedbirdsCont = this;
+    	 	document.addEventListener("keydown", (event) => {
+  				if (event.isComposing || event.keyCode === 219) {
+  					clickedbirdsCont.style.zIndex = 1;
+  				}
+  			});
+    	});
+    });
+}
+
+
+function initDrag() {
+	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+	let birdconts = document.getElementsByClassName("birdcont");
+	let elmnt = null;
+	let currentZIndex = 100; //TODO reset z index when a threshold is passed
+
+	for (let i = 0; i < birdconts.length; i++) {
+		let birdcont = birdconts[i];
+		let header = getHeader(birdcont);
+
+		birdcont.onmousedown = function() {
+			this.style.zIndex = "" + ++currentZIndex;
+			unselectRest(this)
+		};
+
+		birdcont.addEventListener('click', function(){
+			 unselectRest(this)
+		})
+
+		if (header) {
+			header.parentBirdCont = birdcont;
+			header.onmousedown = dragMouseDown;
+		}
+	}
+
+	function unselectRest(but){
+		let notcurrents = document.querySelectorAll('.current');
+		notcurrents.forEach((notcurrent) => {
+			notcurrent.classList.remove('current');
+		})
+		but.classList.add('current')
+	}
+
+	function dragMouseDown(e) {
+		elmnt = this.parentBirdCont;
+		elmnt.style.zIndex = "" + ++currentZIndex;
+
+		e = e || window.event;
+		// get the mouse cursor position at startup:
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+		document.onmouseup = closeDragElement;
+		// call a function whenever the cursor moves:
+		document.onmousemove = elementDrag;
+	}
+
+	function elementDrag(e) {
+		if (!elmnt) {
+			return;
+		}
+
+		e = e || window.event;
+		// calculate the new cursor position:
+		pos1 = pos3 - e.clientX;
+		pos2 = pos4 - e.clientY;
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+		// set the element's new position:
+		elmnt.style.top = elmnt.offsetTop - pos2 + "px";
+		elmnt.style.left = elmnt.offsetLeft - pos1 + "px";
+	}
+
+	function closeDragElement() {
+		/* stop moving when mouse button is released:*/
+		document.onmouseup = null;
+		document.onmousemove = null;
+	}
+
+	function getHeader(element) {
+		let headerItems = element.getElementsByClassName("birdcont-inner");
+
+		if (headerItems.length === 1) {
+			return headerItems[0];
+		}
+
+		return null;
+	}
+}
+
+function initResize() {
+	let birdconts = document.getElementsByClassName("birdcont");
+	let element = null;
+	let startX, startY, startWidth, startHeight;
+
+	for (let i = 0; i < birdconts.length; i++) {
+		let p = birdconts[i];
+
+		let right = document.createElement("div");
+		right.className = "resizer-right";
+		p.appendChild(right);
+		right.addEventListener("mousedown", initDrag, false);
+		right.parentBirdCont = p;
+
+		let bottom = document.createElement("div");
+		bottom.className = "resizer-bottom";
+		p.appendChild(bottom);
+		bottom.addEventListener("mousedown", initDrag, false);
+		bottom.parentBirdCont = p;
+
+		let both = document.createElement("div");
+		both.className = "resizer-both";
+		p.appendChild(both);
+		both.addEventListener("mousedown", initDrag, false);
+		both.parentBirdCont = p;
+	}
+
+	function initDrag(e) {
+		element = this.parentBirdCont;
+
+		startX = e.clientX;
+		startY = e.clientY;
+		startWidth = parseInt( document.defaultView.getComputedStyle(element).width, 10);
+		startHeight = parseInt( document.defaultView.getComputedStyle(element).height, 10);
+		document.documentElement.addEventListener("mousemove", doDrag, false);
+		document.documentElement.addEventListener("mouseup", stopDrag, false);
+	}
+
+	function doDrag(e) {
+		element.style.width = startWidth + e.clientX - startX + "px";
+		element.style.height = startHeight + e.clientY - startY + "px";
+	}
+
+	function stopDrag() {
+		document.documentElement.removeEventListener("mousemove", doDrag, false);
+		document.documentElement.removeEventListener("mouseup", stopDrag, false);
+	}
+}
+
+</script>
+</body>
+</html>
