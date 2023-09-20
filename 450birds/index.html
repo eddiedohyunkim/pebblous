@@ -243,12 +243,14 @@ function colorChange(){
 
 function sendToBack(){
 	let birdconts = document.querySelectorAll('.birdcont');
+	let lowest = 0;
     birdconts.forEach((bird) => {
     	bird.addEventListener('click', function(e){
+    		lowest -= 1;
     	  	clickedbirdsCont = this;
     	 	document.addEventListener("keydown", (event) => {
   				if (event.isComposing || event.keyCode === 219) {
-  					clickedbirdsCont.style.zIndex = 1;
+  					clickedbirdsCont.style.zIndex = lowest;
   				}
   			});
     	});
