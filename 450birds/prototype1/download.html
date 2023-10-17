@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<link rel="stylesheet" type="text/css" href="../css/reset.css">
+	<style type="text/css">
+
+		@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap');
+
+		body{
+			font-family: 'IBM Plex Mono', monospace;
+			margin:0;
+			width:100vw;
+			height:100vh;
+			position: fixed;
+		}
+
+		.birdcont {
+			z-index: 9;
+			border: 1px solid transparent;
+		}
+
+
+		/*Drgable */
+		.birdcont {
+			position: absolute;
+			overflow: auto;
+		}
+		
+		.birdcont-inner {
+/*			position: relative;*/
+			cursor: move;
+			z-index: 10;
+			width:100%;
+			height:100%;
+		}
+
+		
+
+		.svgId{
+			position: absolute;
+			width:fit-content;
+			top:50%;
+			left:50%;
+			transform: translate(-50%, -50%);
+			
+			
+		}
+
+		/*Resizeable*/
+		.birdcont .resizer-right, 
+		.birdcont .resizer-bottom, 
+		.birdcont .resizer-both{
+			background: transparent;
+		  	position: absolute;
+		  	right: 0;
+		  	bottom: 0;
+		}
+
+		.birdcont .resizer-right {
+			width: 10px;
+			height: 100%;
+			cursor: e-resize;
+		}
+		
+		.birdcont .resizer-bottom {
+			width: 100%;
+			height: 10px;
+			cursor: n-resize;
+		}
+		
+		.birdcont .resizer-both {
+			width: 10px;
+			height: 10px;
+			z-index: 10;
+			cursor: nw-resize;
+		}
+		.birdcont.current{
+			border-color: cyan;
+		}
+
+		/*NOSELECT*/
+		.birdcont * {
+			-webkit-touch-callout: none; /* iOS Safari */
+			-webkit-user-select: none; /* Safari */
+			-khtml-user-select: none; /* Konqueror HTML */
+			-moz-user-select: none; /* Firefox */
+			-ms-user-select: none; /* Internet Explorer/Edge */
+			user-select: none; /* Non-prefixed version, currently supported by Chrome and Opera */
+		}
+
+		.birdcont * {
+			overflow: hidden;
+		}
+
+		object{
+      		pointer-events: none;
+    	}
+
+    	header{
+    		background-color: black;
+    		color:white;
+    		position: absolute;
+    		z-index: 9999;
+    		top:0;
+    		left:0;
+    		padding:1px 2px;
+    	}
+    	svg path {
+    		display: none;
+    	}
+	</style>
+</head>
+<body>
+	<header>
+		<p><span id="total"></span> <span id="pathInfo"></span></p>
+		<a href="" id="link">Download</a>
+		<!-- <input type="color" id="colorpicker" value="#ff0000" onchange="colorChange()" oninput="colorChange()">   -->
+	</header>
+	
+</filter>
+<script type="text/javascript">
+console.log( "USAGE" )
+console.log( "Send to back (z-index: 0;) : [" )
+
+const winWidth = window.innerWidth;
+const winHeight = window.innerHeight;
+const svgMinSize = 30; // width and height
+const svgMaxSize = 1000; // width and height
+const svgSizeBias = 0.05;
+const amount = 225;
+const bigPerc = 0.10; //percentage 
+const bigSvg = Math.ceil( amount * bigPerc );
+
+// path styles
+const pStyle = {
+	colors: [ 
+		"#213019", "#076a53", "#47aabf", "#0164c6", "#003ea7", "#1b057b", "#b18232", "#a4b700", "#fdfc00", 
+		"#fee7a6", "#feffaa", "#4c1613", "#8f372a", "#964e18", "#dea482", "#ffd4b1", "#fec356", "#fcb69c", 
+		"#ff8c13", "#e37056", "#ff4a00", "#ca1f0f", "#fc142c", "#f90786", "#ffc0e7", "#e8c6ee", "#d1aee2"
+	],
+	opacity: 1,
+	stroke: {
+		color:"#000",
+		width:0.5
+	},
+	skip: 5 // lowest 
+}
+
+// update header
+let updateTotal = document.querySelector('#total');
+updateTotal.innerHTML = `Total: ${amount} /`;
+
+let updatePathInfo = document.querySelector('#pathInfo');
+updatePathInfo.innerHTML = `size: from ${svgMaxSize} to ${svgMinSize}px, smallest on top / opacity: ${pStyle.opacity} / skip every ${pStyle.skip} contour`;
+
+window.onload = function() {
+	populateBirds()
+	// initialSVGTreatment();
+	// changeColor();
+	sendToBack();
+	initDrag();
+	initResize();
+	download();
+};
+
+function download(){
+	//get svg element.
+
+	let birdconts = document.querySelectorAll('.birdcont');
+    birdconts.forEach((bird) => {
+      bird.addEventListener('click', function(e){
+        let clickedbirdsCont = this;
+
+        let object = clickedbirdsCont.querySelector('object');
+		let svgDoc = object.contentDocument;
+		let svg = svgDoc.querySelector('svg');
+
+		//get svg source.
+		var serializer = new XMLSerializer();
+		var source = serializer.serializeToString(svg);
+		
+		//add name spaces.
+		if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+		    source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"')	;
+		}
+		if(!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+		    source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/	xlink"');
+		}
+		
+		//add xml declaration
+		source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+		
+		//convert svg source to URI data scheme.
+		var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
+
+		var newTab = window.open();
+		newTab.document.body.innerHTML = '<img src='+url+' width="100px" height="100px">';
+		
+		//set url value to a element's href attribute.
+		// document.getElementById("link").href = url;
+		//you can download svg file by right click menu.
+
+      });
+    });
+
+	// let birdconts = document.querySelectorAll('.birdcont');
+    // birdconts.forEach((bird) => {
+		
+
+	// 	});
+		
+	
+}
+
+
+
+function populateBirds(){
+	
+
+	for(let i=0; i<amount; i+=1){
+		let birdconts;
+		drawBird(i)
+
+		let scale = map(amount - i, amount, 0, svgMaxSize, svgMinSize);
+		let rndX = Math.floor(Math.random() * winWidth ) - scale/2;
+		let rndY = Math.floor(Math.random() * winHeight ) - scale/2;
+
+		// populate in random positions
+		birdcont.style.left = rndX + 'px';
+		birdcont.style.top = rndY + 'px';
+
+		// populate in random scale relative to window size
+		birdcont.style.width = scale + 'px';
+		birdcont.style.height = scale + 'px';
+	}
+
+	// draw big birds in the background
+	// for(let i=0; i<bigSvg; i+=1){
+	// 	let birdconts;
+	// 	drawBird(i)
+
+	// 	let rndX = Math.floor(Math.random() * (winWidth * 0.25)) + (winWidth * 0.25);
+	// 	let rndY = Math.floor(Math.random() * (winHeight * 0.25)) + (winHeight * 0.25);
+
+	// 	// populate to biased(windowsize * +-0.75) positions
+	// 	let rndXPosOrNeg = Math.random() < 0.5 ? -Math.abs(rndX) : rndX;
+	// 	let rndYPosOrNeg = Math.random() < 0.5 ? -Math.abs(rndY) : rndY;
+	// 	birdcont.style.left = rndXPosOrNeg + 'px';
+	// 	birdcont.style.top = rndYPosOrNeg + 'px';
+
+	// 	// populate in random scale relative to window size
+	// 	let winMaxSize = Math.max(winWidth, winHeight);
+	// 	let rndScale = Math.floor(Math.random() * (winMaxSize * 0.5)) + (winMaxSize * 0.5);
+	// 	birdcont.style.width = rndScale + 'px';
+	// 	birdcont.style.height = rndScale + 'px';
+	// }
+
+	// // draw small birds on top
+	// for(let i=0; i<amount - bigSvg; i+=1){
+	// 	let birdconts;
+	// 	drawBird(i)
+
+	// 	// populate to random positions
+	// 	let windowRandomX = Math.floor(Math.random() * winWidth) - svgMinSize;
+	// 	let windowRandomY = Math.floor(Math.random() * winHeight) - svgMinSize;
+	// 	birdcont.style.left = windowRandomX + 'px';
+	// 	birdcont.style.top = windowRandomY + 'px';
+
+	// 	// populate in biased random scale
+	// 	// biased random number = windowsize * (+ - 0.25)
+	// 	let biasedRandom = getRndBias(svgMinSize, svgMaxSize, svgMaxSize * svgSizeBias, 1.00);
+	// 	birdcont.style.width = biasedRandom + 'px';
+	// 	birdcont.style.height = biasedRandom + 'px';
+	// }
+
+	initialSVGTreatment();
+}
+
+function getRndBias(min, max, bias, influence) {
+    var rnd = Math.random() * (max - min) + min,   // random in range
+        mix = Math.random() * influence;           // random mixer
+    return rnd * (1 - mix) + bias * mix;           // mix full range and bias
+}
+
+function zeroFilled3(num){
+	return ('000' + num).substr(-3)
+}
+
+
+function drawBird(i){
+	// largest <div> for resizable function
+	birdcont = document.createElement('div');
+	birdcont.className = 'birdcont';
+	document.body.appendChild(birdcont);
+
+	// <div> for draggable function
+	let birdcontInner = document.createElement('div');
+	birdcontInner.className = 'birdcont-inner';
+	birdcont.appendChild(birdcontInner);
+	
+	// <object> nests <svg>
+	let object = document.createElement('object');
+	object.id = 'bird' + (i+1);
+	object.type = "image/svg+xml";
+	object.data = `../assets/Bird-450-${zeroFilled3(i+1)}.svg`;
+	object.width = '100%';
+	object.height = '100%';
+	birdcontInner.appendChild(object);
+}
+
+function initialSVGTreatment(){
+
+    // 1. remove everything execpt for the contour path <g>
+    // 2. remove black background
+    // 3. reverse the order of contour paths
+    // 4. change countour strokes and fill color
+    // 5. make <svg> fitted to the contour map
+    // 6. create centered Id
+	
+
+    let birdconts = document.querySelectorAll('.birdcont');
+    birdconts.forEach((bird) => {
+		let object = bird.querySelector('object');
+
+		object.addEventListener("load",function(){
+
+			// get the inner DOM of bird-450-nnn.svg
+			let svgDoc = object.contentDocument;
+
+			let svg = svgDoc.querySelector('svg');
+
+
+			// 1. remove everything execpt for the contour path <g>
+    		let svgChildren = svg.children;
+			for(let i=0; i<svgChildren.length; i+=1){
+				if(!svgChildren[i].querySelector(':scope > path')){
+					svgChildren[i].remove();
+				}
+			}
+
+			// 2. remove black background
+			let contourG = svgDoc.querySelector(':scope > g');
+			contourG.querySelector('rect').remove();
+
+			
+			let contours = contourG.querySelectorAll('path');
+			// filter="url(#blur)"
+
+			
+	
+			// 3. reverse the order of contour paths
+			reverseChildren(contourG, 'path');
+
+			// 4. change countour strokes and fill color
+			let randomColor = pStyle.colors[Math.floor(Math.random() * pStyle.colors.length)]
+			for(let i=0; i<contours.length; i+=1){
+				contours[i].setAttribute('vector-effect', 'non-scaling-stroke');
+				contours[i].style.strokeWidth = pStyle.stroke.width;
+			  	contours[i].style.stroke = pStyle.stroke.color;
+			  	contours[i].style.visibility = 'hidden';
+			  // let range = Math.round(map(i, 0, contours.length, 20, 0))
+			  // contours[i].style.fill = lightenColor(randomColor, range);
+
+				contours[i].style.fill = randomColor;
+				contours[i].style.opacity = pStyle.opacity;			  
+			}
+
+			// 2.5 remove some contour paths 
+			
+			for(i=0; i<contours.length; i+=pStyle.skip) {
+				contours[i].style.visibility = 'visible';
+				contours[i].style.strokeDasharray = Math.floor(Math.random * 5);
+
+			}
+			
+			// BLUR FILTER 
+			// contourG.setAttribute('filter', 'url(#blur)')
+			// svg.innerHTML += `<filter id="blur" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="blur"/></filter>`;
+
+			// 5. make <svg> fitted to the contour map
+			svg.setAttribute('width', '100%');
+			svg.setAttribute('height', '100%');
+			let bboxNew = svg.getBBox();
+    		// Set the viewport with these bounds
+    		svg.setAttribute("viewBox", `${bboxNew.x} ${bboxNew.y} ${bboxNew.width} ${bboxNew.height}`);
+
+    		// 6. create centered Id
+    		let objectCont = object.parentElement;
+    		let svgId = document.createElement('div');
+    		svgId.className = 'svgId';
+    		svgId.innerHTML = contourG.id.replace('surface','');;
+    		objectCont.appendChild(svgId);
+
+
+
+
+		});
+
+	}, false);
+}
+
+function map (value, a, b, c, d) {
+    value = (value - a) / (b - a);
+    return c + value * (d - c);
+}
+
+function lightenColor(color, percent) {
+	var num = parseInt(color.replace("#",""),16),
+	amt = Math.round(2.55 * percent),
+	R = (num >> 16) + amt,
+	B = (num >> 8 & 0x00FF) + amt,
+	G = (num & 0x0000FF) + amt;
+	return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (B<255?B<1?0:B:255)*0x100 + (G<255?G<1?0:G:255)).toString(16).slice(1);
+};
+
+function reverseChildren(parent, childtype) {
+	let target = parent.querySelectorAll(childtype);
+	let others = parent.querySelectorAll('*:not(' + childtype+ ')');
+	for (var i = 1; i < target.length; i++){
+		parent.insertBefore(target[target.length - i], others[0]);
+	}
+}
+
+let clickedbirdsCont;
+const colorPicker = document.getElementById('colorpicker');
+function changeColor(){
+	let birdconts = document.querySelectorAll('.birdcont');
+    birdconts.forEach((bird) => {
+      bird.addEventListener('click', function(e){
+        clickedbirdsCont = this;
+      });
+    });
+}
+function colorChange(){
+	
+	let object = clickedbirdsCont.querySelector('object');
+
+	// get the inner DOM of bird-450-nnn.svg
+	let svgDoc = object.contentDocument;
+
+	// get the contour path group method 2
+	let g = svgDoc.querySelector(':scope > g');
+
+	let allpaths = g.querySelectorAll('path');
+	allpaths.forEach((path) => {
+	  path.style.fill = colorPicker.value;
+	});
+}
+
+
+function sendToBack(){
+	let birdconts = document.querySelectorAll('.birdcont');
+	let lowest = 0;
+    birdconts.forEach((bird) => {
+    	bird.addEventListener('click', function(e){
+    		lowest -= 1;
+    	  	clickedbirdsCont = this;
+    	 	document.addEventListener("keydown", (event) => {
+  				if (event.isComposing || event.keyCode === 219) {
+  					clickedbirdsCont.style.zIndex = lowest;
+  				}
+  			});
+    	});
+    });
+}
+
+
+function initDrag() {
+	let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+	let birdconts = document.getElementsByClassName("birdcont");
+	let elmnt = null;
+	let currentZIndex = 100; //TODO reset z index when a threshold is passed
+
+	for (let i = 0; i < birdconts.length; i++) {
+		let birdcont = birdconts[i];
+		let header = getHeader(birdcont);
+
+		birdcont.onmousedown = function() {
+			this.style.zIndex = "" + ++currentZIndex;
+			unselectRest(this)
+		};
+
+		birdcont.addEventListener('click', function(){
+			 unselectRest(this)
+		})
+
+		if (header) {
+			header.parentBirdCont = birdcont;
+			header.onmousedown = dragMouseDown;
+		}
+	}
+
+	function unselectRest(but){
+		let notcurrents = document.querySelectorAll('.current');
+		notcurrents.forEach((notcurrent) => {
+			notcurrent.classList.remove('current');
+		})
+		but.classList.add('current')
+	}
+
+	function dragMouseDown(e) {
+		elmnt = this.parentBirdCont;
+		elmnt.style.zIndex = "" + ++currentZIndex;
+
+		e = e || window.event;
+		// get the mouse cursor position at startup:
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+		document.onmouseup = closeDragElement;
+		// call a function whenever the cursor moves:
+		document.onmousemove = elementDrag;
+	}
+
+	function elementDrag(e) {
+		if (!elmnt) { return; }
+
+		e = e || window.event;
+		// calculate the new cursor position:
+		pos1 = pos3 - e.clientX;
+		pos2 = pos4 - e.clientY;
+		pos3 = e.clientX;
+		pos4 = e.clientY;
+		// set the element's new position:
+		elmnt.style.top = elmnt.offsetTop - pos2 + "px";
+		elmnt.style.left = elmnt.offsetLeft - pos1 + "px";
+	}
+
+	function closeDragElement() {
+		/* stop moving when mouse button is released:*/
+		document.onmouseup = null;
+		document.onmousemove = null;
+	}
+
+	function getHeader(element) {
+		let headerItems = element.getElementsByClassName("birdcont-inner");
+
+		if (headerItems.length === 1) {
+			return headerItems[0];
+		}
+		return null;
+	}
+}
+
+function initResize() {
+	let birdconts = document.getElementsByClassName("birdcont");
+	let element = null;
+	let startX, startY, startWidth, startHeight;
+
+	for (let i = 0; i < birdconts.length; i++) {
+		let p = birdconts[i];
+
+		let right = document.createElement("div");
+		right.className = "resizer-right";
+		p.appendChild(right);
+		right.addEventListener("mousedown", initDrag, false);
+		right.parentBirdCont = p;
+
+		let bottom = document.createElement("div");
+		bottom.className = "resizer-bottom";
+		p.appendChild(bottom);
+		bottom.addEventListener("mousedown", initDrag, false);
+		bottom.parentBirdCont = p;
+
+		let both = document.createElement("div");
+		both.className = "resizer-both";
+		p.appendChild(both);
+		both.addEventListener("mousedown", initDrag, false);
+		both.parentBirdCont = p;
+	}
+
+	function initDrag(e) {
+		element = this.parentBirdCont;
+
+		startX = e.clientX;
+		startY = e.clientY;
+		startWidth = parseInt( document.defaultView.getComputedStyle(element).width, 10);
+		startHeight = parseInt( document.defaultView.getComputedStyle(element).height, 10);
+		document.documentElement.addEventListener("mousemove", doDrag, false);
+		document.documentElement.addEventListener("mouseup", stopDrag, false);
+	}
+
+	function doDrag(e) {
+		element.style.width = startWidth + e.clientX - startX + "px";
+		element.style.height = startHeight + e.clientY - startY + "px";
+	}
+
+	function stopDrag() {
+		document.documentElement.removeEventListener("mousemove", doDrag, false);
+		document.documentElement.removeEventListener("mouseup", stopDrag, false);
+	}
+}
+
+</script>
+</body>
+</html>
