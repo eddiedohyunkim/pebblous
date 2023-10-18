@@ -111,12 +111,18 @@
     	svg path {
     		display: none;
     	}
+    	img{
+    		width:100px;
+    		height:100px;
+    		position: fixed;
+    		top:-100px;
+    		left:-100px;
+    	}
 	</style>
 </head>
 <body>
 	<header>
-		<p><span id="total"></span> <span id="pathInfo"></span></p>
-		<a href="" id="link">Download</a>
+		<p><span id="total"></span> <span id="pathInfo"></span> / <button id="download" onclick="downloadAll()" type='button'>Download All</button></p>
 		<!-- <input type="color" id="colorpicker" value="#ff0000" onchange="colorChange()" oninput="colorChange()">   -->
 	</header>
 	
@@ -130,7 +136,7 @@ const winHeight = window.innerHeight;
 const svgMinSize = 30; // width and height
 const svgMaxSize = 1000; // width and height
 const svgSizeBias = 0.05;
-const amount = 225;
+const amount = 100;
 const bigPerc = 0.10; //percentage 
 const bigSvg = Math.ceil( amount * bigPerc );
 
@@ -163,20 +169,18 @@ window.onload = function() {
 	sendToBack();
 	initDrag();
 	initResize();
-	download();
 };
 
-function download(){
-	//get svg element.
-
+let imgArr=[];
+counter = 0;
+function downloadAll(){
 	let birdconts = document.querySelectorAll('.birdcont');
-    birdconts.forEach((bird) => {
-      bird.addEventListener('click', function(e){
-        let clickedbirdsCont = this;
-
-        let object = clickedbirdsCont.querySelector('object');
+    birdconts.forEach((bird) => {	
+    	let object = bird.querySelector('object');
 		let svgDoc = object.contentDocument;
 		let svg = svgDoc.querySelector('svg');
+		let contourG = svgDoc.querySelector(':scope > g');
+		counter += 1;
 
 		//get svg source.
 		var serializer = new XMLSerializer();
@@ -196,25 +200,36 @@ function download(){
 		//convert svg source to URI data scheme.
 		var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
 
-		var newTab = window.open();
-		newTab.document.body.innerHTML = '<img src='+url+' width="100px" height="100px">';
-		
-		//set url value to a element's href attribute.
-		// document.getElementById("link").href = url;
-		//you can download svg file by right click menu.
+		// imgArr.push(url);
 
-      });
+		let img = document.createElement('img');
+		img.setAttribute('download', `450-bird-${counter}.svg`);
+		img.alt = contourG.id.replace('surface','');
+		img.src = url;
+		document.body.appendChild(img);
+		
     });
-
-	// let birdconts = document.querySelectorAll('.birdcont');
-    // birdconts.forEach((bird) => {
-		
-
-	// 	});
-		
-	
+    startDownload()
+    
 }
 
+function startDownload(){
+	var images = document.getElementsByTagName('img');
+	var srcList = [];
+	var i = 0;
+	
+	setInterval(function(){
+	    if(images.length > i){
+	        srcList.push(images[i].src);
+	        var link = document.createElement("a");
+	        link.id=i;
+	        link.download = `bird-${i+1}-${images[i].alt}.svg`;
+	        link.href = images[i].src;
+	        link.click();
+	        i++;
+	    }
+	},200);
+}
 
 
 function populateBirds(){
@@ -391,7 +406,7 @@ function initialSVGTreatment(){
     		let objectCont = object.parentElement;
     		let svgId = document.createElement('div');
     		svgId.className = 'svgId';
-    		svgId.innerHTML = contourG.id.replace('surface','');;
+    		svgId.innerHTML = contourG.id.replace('surface','');
     		objectCont.appendChild(svgId);
 
 
